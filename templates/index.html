@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Dashboard: Real-Time House Price Predictor</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (CDN for rapid visual styling helper) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(22, 28, 45, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-primary: #6366f1;
+            --accent-secondary: #a855f7;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.15) 0%, transparent 45%);
+            background-attachment: fixed;
+        }
+
+        h1, h2, h3, .font-heading {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Glassmorphism utility */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Gradient buttons */
+        .btn-gradient {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn-gradient:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+            opacity: 0.95;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Input styling */
+        .form-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #f8fafc;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+    <!-- Header Section -->
+    <header class="border-b border-[rgba(255,255,255,0.06)] py-5 px-6 mb-8 backdrop-blur-md sticky top-0 z-50 bg-[#0b0f19]/80">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="brain-circuit" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-300 bg-clip-text text-transparent">
+                        HackathonML
+                    </h1>
+                    <p class="text-xs text-[rgba(255,255,255,0.4)]">Linear Regression Engine from Scratch</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="flex items-center space-x-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full text-xs text-green-400 font-medium">
+                    <span class="w-2.5 h-2.5 bg-green-400 rounded-full animate-ping mr-1"></span>
+                    Backend Connected
+                </span>
+                <a href="https://github.com/mr-sreekar/hackathon" target="_blank" class="p-2 text-slate-300 hover:text-white transition-colors">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6">
+        <!-- Dashboard Top Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="glass-card p-6 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Total Dataset Size</p>
+                    <h3 id="stat-data-size" class="text-3xl font-bold">-</h3>
+                </div>
+                <div class="p-3 bg-indigo-500/10 rounded-xl text-indigo-400">
+                    <i data-lucide="database" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div class="glass-card p-6 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Model Type</p>
+                    <h3 class="text-2xl font-bold text-indigo-200">MLR (Scratch)</h3>
+                </div>
+                <div class="p-3 bg-purple-500/10 rounded-xl text-purple-400">
+                    <i data-lucide="cpu" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div class="glass-card p-6 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Convergence Loss</p>
+                    <h3 id="stat-loss" class="text-3xl font-bold text-green-400">-</h3>
+                </div>
+                <div class="p-3 bg-green-500/10 rounded-xl text-green-400">
+                    <i data-lucide="trending-down" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div class="glass-card p-6 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Status</p>
+                    <h3 class="text-3xl font-bold text-blue-400">Optimized</h3>
+                </div>
+                <div class="p-3 bg-blue-500/10 rounded-xl text-blue-400">
+                    <i data-lucide="check-circle" class="w-6 h-6"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Layout Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left Panel: Interact & Train -->
+            <div class="lg:col-span-5 flex flex-col space-y-6">
+                
+                <!-- Prediction Form Card -->
+                <div class="glass-card p-6 flex-1">
+                    <h2 class="text-lg font-bold flex items-center mb-6 text-slate-200">
+                        <i data-lucide="sliders" class="w-5 h-5 mr-2 text-indigo-400"></i>
+                        House Price Inference
+                    </h2>
+                    
+                    <form id="prediction-form" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">House Size (Sq Ft)</label>
+                            <input id="input-size" type="number" value="1500" min="400" max="6000" class="w-full form-input py-2.5 px-4" required>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Bedrooms</label>
+                                <select id="input-bedrooms" class="w-full form-input py-2.5 px-4">
+                                    <option value="1">1 Bed</option>
+                                    <option value="2">2 Beds</option>
+                                    <option value="3" selected>3 Beds</option>
+                                    <option value="4">4 Beds</option>
+                                    <option value="5">5 Beds</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Property Age (Years)</label>
+                                <input id="input-age" type="number" value="5" min="0" max="80" class="w-full form-input py-2.5 px-4" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full btn-gradient text-white py-3 rounded-xl font-bold flex items-center justify-center space-x-2 text-sm">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            <span>Calculate Estimated Price</span>
+                        </button>
+                    </form>
+
+                    <!-- Prediction Result Overlay -->
+                    <div class="mt-6 p-5 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex flex-col items-center justify-center text-center">
+                        <span class="text-xs text-slate-400 font-medium tracking-wide uppercase">Estimated Price</span>
+                        <div class="text-3xl font-extrabold text-indigo-300 mt-1.5" id="prediction-result">$150,000</div>
+                        <span class="text-[10px] text-slate-500 mt-1">Calculated via trained parameter matrices</span>
+                    </div>
+                </div>
+
+                <!-- Add Training Data & Retrain Card -->
+                <div class="glass-card p-6">
+                    <h2 class="text-lg font-bold flex items-center mb-6 text-slate-200">
+                        <i data-lucide="plus-circle" class="w-5 h-5 mr-2 text-purple-400"></i>
+                        Feed & Retrain Model
+                    </h2>
+                    <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+                        Add a new custom data point to the dataset. The backend will retrain the Multi-variable Linear Regression model from scratch instantly.
+                    </p>
+                    
+                    <form id="train-form" class="space-y-4">
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-semibold text-slate-400 mb-1.5 uppercase">Size (sqft)</label>
+                                <input id="train-size" type="number" placeholder="1800" class="w-full form-input py-2 px-3 text-sm" required>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-semibold text-slate-400 mb-1.5 uppercase">Bedrooms</label>
+                                <input id="train-beds" type="number" placeholder="3" min="1" max="10" class="w-full form-input py-2 px-3 text-sm" required>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-semibold text-slate-400 mb-1.5 uppercase">Age (yrs)</label>
+                                <input id="train-age" type="number" placeholder="8" min="0" max="100" class="w-full form-input py-2 px-3 text-sm" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-400 mb-1.5 uppercase">Actual Price ($k)</label>
+                            <input id="train-price" type="number" placeholder="420" class="w-full form-input py-2 px-3 text-sm" required>
+                        </div>
+                        <button type="submit" class="w-full btn-secondary text-white py-2.5 rounded-xl font-semibold flex items-center justify-center space-x-2 text-xs">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                            <span>Add Point & Retrain Engine</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Panel: Graphs -->
+            <div class="lg:col-span-7 flex flex-col space-y-6">
+                <!-- Data Scatter Plot Card -->
+                <div class="glass-card p-6 flex-1">
+                    <h2 class="text-lg font-bold flex items-center mb-6 text-slate-200">
+                        <i data-lucide="area-chart" class="w-5 h-5 mr-2 text-indigo-400"></i>
+                        Size vs Price & Regression Boundary
+                    </h2>
+                    <div class="relative w-full h-[280px]">
+                        <canvas id="scatterChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Loss/Error Reduction Plot Card -->
+                <div class="glass-card p-6">
+                    <h2 class="text-lg font-bold flex items-center mb-6 text-slate-200">
+                        <i data-lucide="line-chart" class="w-5 h-5 mr-2 text-purple-400"></i>
+                        Training Loss Convergence (MSE)
+                    </h2>
+                    <div class="relative w-full h-[180px]">
+                        <canvas id="lossChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="max-w-7xl mx-auto px-6 text-center text-xs text-slate-500 mt-12">
+        <p>Built with ❤️ for the Hackathon project. Powered by Flask, NumPy, and Custom Matrix Algebra.</p>
+    </footer>
+
+    <script>
+        // Init Lucide Icons
+        lucide.createIcons();
+
+        // Chart References
+        let scatterChart = null;
+        let lossChart = null;
+
+        // Fetch dataset and parameters from Flask backend
+        async function fetchAndUpdateDashboard() {
+            try {
+                const response = await fetch('/api/data');
+                const data = await response.json();
+
+                // Update Stats Panel
+                document.getElementById('stat-data-size').innerText = data.X.length;
+                
+                const finalLoss = data.loss_history[data.loss_history.length - 1];
+                document.getElementById('stat-loss').innerText = finalLoss.toFixed(6);
+
+                // Build / Update Charts
+                renderScatterChart(data.X, data.y, data.weights, data.bias);
+                renderLossChart(data.loss_history);
+            } catch (err) {
+                console.error("Error updates:", err);
+            }
+        }
+
+        function renderScatterChart(X, y, weights, bias) {
+            // Plot Size (index 0 of X) vs Price (y)
+            const scatterPoints = X.map((point, index) => {
+                return { x: point[0], y: y[index] };
+            });
+
+            // Generate Regression Line points using min/max Size
+            const sizes = X.map(p => p[0]);
+            const minSize = Math.min(...sizes);
+            const maxSize = Math.max(...sizes);
+
+            // Fetch average features to make regression line predictions realistic
+            const avgBedrooms = X.reduce((sum, p) => sum + p[1], 0) / X.length;
+            const avgAge = X.reduce((sum, p) => sum + p[2], 0) / X.length;
+
+            // Simplified linear fit representation for size vs price
+            // We'll compute predictions at minSize and maxSize
+            const linePoints = [];
+            
+            // To compute predictions we call our API prediction for minSize/maxSize with avg attributes
+            // Or simple local linear mapping just to show fitting line:
+            // Since we can compute this asynchronously or local estimates:
+            // We will fetch predicted values for endpoints from server
+            fetchPredictionsForEndpoints(minSize, maxSize, avgBedrooms, avgAge).then(predictions => {
+                if (scatterChart) {
+                    scatterChart.data.datasets[0].data = scatterPoints;
+                    scatterChart.data.datasets[1].data = [
+                        { x: minSize, y: predictions.minPred },
+                        { x: maxSize, y: predictions.maxPred }
+                    ];
+                    scatterChart.update();
+                } else {
+                    const ctx = document.getElementById('scatterChart').getContext('2d');
+                    scatterChart = new Chart(ctx, {
+                        type: 'scatter',
+                        data: {
+                            datasets: [
+                                {
+                                    label: 'Actual Properties',
+                                    data: scatterPoints,
+                                    backgroundColor: 'rgba(99, 102, 241, 0.65)',
+                                    borderColor: 'rgba(99, 102, 241, 1)',
+                                    borderWidth: 1.5,
+                                    pointRadius: 6,
+                                    pointHoverRadius: 8
+                                },
+                                {
+                                    label: 'Model Fit Boundary (Regression)',
+                                    data: [
+                                        { x: minSize, y: predictions.minPred },
+                                        { x: maxSize, y: predictions.maxPred }
+                                    ],
+                                    type: 'line',
+                                    borderColor: 'rgba(168, 85, 247, 0.95)',
+                                    borderWidth: 3,
+                                    fill: false,
+                                    pointRadius: 0,
+                                    tension: 0
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans' } }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    title: { display: true, text: 'Property Size (Sq Ft)', color: '#94a3b8' },
+                                    ticks: { color: '#64748b' },
+                                    grid: { color: 'rgba(255,255,255,0.03)' }
+                                },
+                                y: {
+                                    title: { display: true, text: 'Price ($k)', color: '#94a3b8' },
+                                    ticks: { color: '#64748b' },
+                                    grid: { color: 'rgba(255,255,255,0.03)' }
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        async function fetchPredictionsForEndpoints(minSize, maxSize, avgBedrooms, avgAge) {
+            try {
+                const resMin = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ size: minSize, bedrooms: avgBedrooms, age: avgAge })
+                });
+                const dataMin = await resMin.json();
+
+                const resMax = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ size: maxSize, bedrooms: avgBedrooms, age: avgAge })
+                });
+                const dataMax = await resMax.json();
+
+                return {
+                    minPred: dataMin.prediction,
+                    maxPred: dataMax.prediction
+                };
+            } catch (err) {
+                // Fallback estimates if endpoints fail
+                return { minPred: 150, maxPred: 600 };
+            }
+        }
+
+        function renderLossChart(lossHistory) {
+            const epochs = lossHistory.map((_, i) => i + 1);
+            
+            if (lossChart) {
+                lossChart.data.labels = epochs;
+                lossChart.data.datasets[0].data = lossHistory;
+                lossChart.update();
+            } else {
+                const ctx = document.getElementById('lossChart').getContext('2d');
+                lossChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: epochs,
+                        datasets: [{
+                            label: 'MSE Loss Value',
+                            data: lossHistory,
+                            borderColor: 'rgba(34, 197, 94, 0.8)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.05)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.2,
+                            pointRadius: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Gradient Descent Epochs', color: '#94a3b8', font: { size: 10 } },
+                                ticks: { color: '#64748b', maxTicksLimit: 10 },
+                                grid: { display: false }
+                            },
+                            y: {
+                                title: { display: true, text: 'Loss', color: '#94a3b8', font: { size: 10 } },
+                                ticks: { color: '#64748b' },
+                                grid: { color: 'rgba(255,255,255,0.03)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Handle prediction form submission
+        document.getElementById('prediction-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const size = document.getElementById('input-size').value;
+            const bedrooms = document.getElementById('input-bedrooms').value;
+            const age = document.getElementById('input-age').value;
+
+            try {
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ size, bedrooms, age })
+                });
+                const res = await response.json();
+                if (res.success) {
+                    // Beautiful currency formatting
+                    const formattedPrice = new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        maximumFractionDigits: 0
+                    }).format(res.prediction * 1000);
+                    
+                    document.getElementById('prediction-result').innerText = formattedPrice;
+                } else {
+                    alert("Prediction error: " + res.error);
+                }
+            } catch (err) {
+                console.error("API Call error:", err);
+            }
+        });
+
+        // Handle train form submission
+        document.getElementById('train-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const size = document.getElementById('train-size').value;
+            const bedrooms = document.getElementById('train-beds').value;
+            const age = document.getElementById('train-age').value;
+            const price = document.getElementById('train-price').value;
+
+            try {
+                const response = await fetch('/api/train', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ size, bedrooms, age, price })
+                });
+                const res = await response.json();
+                if (res.success) {
+                    // Reset inputs
+                    document.getElementById('train-size').value = '';
+                    document.getElementById('train-beds').value = '';
+                    document.getElementById('train-age').value = '';
+                    document.getElementById('train-price').value = '';
+                    
+                    // Fetch fresh dataset parameters and update charts
+                    fetchAndUpdateDashboard();
+                    
+                    // Trigger prediction refresh
+                    document.getElementById('prediction-form').requestSubmit();
+                } else {
+                    alert("Training error: " + res.error);
+                }
+            } catch (err) {
+                console.error("API Call error:", err);
+            }
+        });
+
+        // Initial Load
+        fetchAndUpdateDashboard();
+        // Trigger initial calculation
+        setTimeout(() => {
+            document.getElementById('prediction-form').requestSubmit();
+        }, 800);
+    </script>
+</body>
+</html>
